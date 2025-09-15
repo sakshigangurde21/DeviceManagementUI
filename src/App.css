@@ -1,0 +1,213 @@
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f0f2f5;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 700px;
+  margin: 50px auto;
+  background-color: #fff;
+  padding: 25px 30px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+
+h1 {
+  text-align: center;
+  color: #333;
+  margin-bottom: 25px;
+  font-size: 28px;
+}
+
+.error {
+  color: #d32f2f;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.success {
+  color: #388e3c;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+/* Form */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #555;
+}
+
+.form input {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.form input:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+.add-btn {
+  width: 150px;
+  align-self: flex-start;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  background-color: #007bff;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.add-btn:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+/* Search Box */
+.search-box {
+  margin-bottom: 25px;
+  display: flex;
+  justify-content: center;
+}
+
+.search-box input {
+  width: 100%;
+  max-width: 400px;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.search-box input:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+/* Device List */
+.device-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.device-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fafafa;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.05);
+  transition: transform 0.1s;
+}
+
+.device-item:hover {
+  transform: translateY(-2px);
+}
+
+.device-info strong {
+  font-size: 16px;
+  color: #222;
+}
+
+.device-info p {
+  margin: 5px 0 0 0;
+  color: #555;
+  font-size: 14px;
+}
+
+.device-actions button {
+  margin-left: 10px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 13px;
+  transition: transform 0.1s, opacity 0.2s;
+}
+
+.device-actions button:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+
+.edit-btn {
+  background-color: #ffc107;
+  color: white;
+}
+
+.edit-btn:hover {
+  background-color: #e0a800;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+}
+
+.delete-btn:hover {
+  background-color: #a71d2a;
+}
+
+/* Edit form inside list */
+.edit-form input {
+  margin-right: 8px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 13px;
+}
+
+.save-btn {
+  background-color: #28a745;
+  color: white;
+  margin-right: 5px;
+}
+
+.save-btn:hover {
+  background-color: #1e7e34;
+}
+
+.cancel-btn {
+  background-color: #6c757d;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background-color: #495057;
+}
+
+/* No Devices Message */
+.no-devices {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: 20px;
+}
