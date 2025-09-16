@@ -1,10 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  getDevices,
-  addDevice,
-  deleteDevice,
-  updateDevice,
-} from "./services/deviceService";
+import { getDevices, addDevice, deleteDevice, updateDevice} from "./services/deviceService";
 import "./App.css";
 
 function App() {
@@ -18,6 +13,10 @@ function App() {
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Track input focus for validation
+  const [touched, setTouched] = useState(false);
+  const [editTouched, setEditTouched] = useState(false);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,13 +45,17 @@ function App() {
     }
   };
 
-  // Auto-clear success messages after 3 seconds
+  // Auto-clear success & error messages after 3 seconds
   useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => setSuccess(""), 3000);
+    if (success || addError || editError) {
+      const timer = setTimeout(() => {
+        setSuccess("");
+        setAddError("");
+        setEditError("");
+      }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [success]);
+  }, [success, addError, editError]);
 
   const validateName = (name, excludeId = null) => {
     const trimmed = name.trim();
@@ -74,6 +77,9 @@ function App() {
   };
 
   const handleAdd = async () => {
+    // Mark touched so validation message shows
+    setTouched(true);
+
     const errMsg = validateName(newDevice);
     if (errMsg) {
       setAddError(errMsg);
@@ -88,6 +94,7 @@ function App() {
       setNewDevice("");
       setNewDescription("");
       setAddError("");
+      setTouched(false);
       setCurrentPage(1); // reset to first page
       loadDevices();
     } catch (err) {
@@ -113,6 +120,7 @@ function App() {
     setEditName(d.deviceName);
     setEditDescription(d.description);
     setEditError("");
+    setEditTouched(false);
   };
 
   const handleCancelEdit = () => {
@@ -120,9 +128,13 @@ function App() {
     setEditName("");
     setEditDescription("");
     setEditError("");
+    setEditTouched(false);
   };
 
   const handleUpdate = async () => {
+    // mark edit input as touched so error shows if invalid
+    setEditTouched(true);
+
     const errMsg = validateName(editName, editId);
     if (errMsg) {
       setEditError(errMsg);
@@ -160,6 +172,7 @@ function App() {
       <h1>Device Management System</h1>
       {success && <p className="success">{success}</p>}
 
+      {/* Add Form */}
       <div className="form">
         <div className="form-group">
           <label>Device Name</label>
@@ -169,11 +182,15 @@ function App() {
             value={newDevice}
             onChange={(e) => {
               setNewDevice(e.target.value);
+              // update addError live while typing
               setAddError(validateName(e.target.value));
             }}
+            onBlur={() => setTouched(true)}
             disabled={editId !== null}
           />
-          {newDevice && addError && !editId && <p className="inline-error">{addError}</p>}
+          {touched && addError && !editId && (
+            <p className="inline-error">{addError}</p>
+          )}
         </div>
         <div className="form-group">
           <label>Description</label>
@@ -185,16 +202,18 @@ function App() {
             disabled={editId !== null}
           />
         </div>
+        {/* Note: removed `!newDevice.trim()` from disabled so clicking Add triggers validation */}
         <button
           type="button"
           className="add-btn"
           onClick={handleAdd}
-          disabled={editId !== null || !!addError || !newDevice.trim()}
+          disabled={editId !== null || !!addError}
         >
           Add Device
         </button>
       </div>
 
+      {/* Search */}
       <div className="search-box">
         <input
           type="text"
@@ -202,11 +221,12 @@ function App() {
           value={searchTerm}
           onChange={(e) => {
             setSearchTerm(e.target.value);
-            setCurrentPage(1); // reset to first page on search
+            setCurrentPage(1);
           }}
         />
       </div>
 
+      {/* Device List */}
       <ul className="device-list">
         {paginatedDevices.length === 0 ? (
           <p className="no-devices">No devices found</p>
@@ -222,8 +242,11 @@ function App() {
                       setEditName(e.target.value);
                       setEditError(validateName(e.target.value, editId));
                     }}
+                    onBlur={() => setEditTouched(true)}
                   />
-                  {editName && editError && <p className="inline-error">{editError}</p>}
+                  {editTouched && editError && (
+                    <p className="inline-error">{editError}</p>
+                  )}
                   <input
                     type="text"
                     value={editDescription}
