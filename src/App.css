@@ -253,3 +253,34 @@ h1 {
   font-weight: bold;
   color: #333;
 }
+
+/* Toast container */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9999;
+}
+
+/* Individual toast */
+.toast {
+  padding: 12px 20px;
+  border-radius: 8px;
+  color: black;
+  font-weight: bold;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+  opacity: 0;
+  animation: slideIn 0.3s forwards, fadeOut 0.5s 3.5s forwards;
+}
+
+/* Toast types */
+.toast.added { background-color: lightgreen; }
+.toast.updated { background-color: #ffc107; color: #222; }
+.toast.deleted { background-color:  #FF474C; }
+
+/* Animations */
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes fadeOut { to { opacity: 0; transform: translateX(100%); } }

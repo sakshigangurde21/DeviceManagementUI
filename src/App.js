@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { getDevices, addDevice, deleteDevice, updateDevice} from "./services/deviceService";
+import { getDevices, addDevice, deleteDevice, updateDevice } from "./services/deviceService";
+import * as signalR from "@microsoft/signalr"; // import SignalR client
 import "./App.css";
 
 function App() {
@@ -17,6 +18,8 @@ function App() {
   // Track input focus for validation
   const [touched, setTouched] = useState(false);
   const [editTouched, setEditTouched] = useState(false);
+
+  const [toasts, setToasts] = useState([]); // array of notifications
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -44,6 +47,46 @@ function App() {
       setDevices([]);
     }
   };
+
+  const showToast = (type, message) => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { id, type, message }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
+  };
+
+  // Setup SignalR connection
+  useEffect(() => {
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl("https://localhost:7003/deviceHub") // port
+      .withAutomaticReconnect()
+      .build();
+
+    connection.on("ReceiveNotification", (message) => {
+      console.log("SignalR message:", message);
+
+      // Detect toast type based on message text
+      if (message.toLowerCase().includes("added")) {
+        showToast("added", message);
+      } else if (message.toLowerCase().includes("updated")) {
+        showToast("updated", message);
+      } else if (message.toLowerCase().includes("deleted")) {
+        showToast("deleted", message);
+      } else {
+        showToast("added", message); // fallback
+      }
+
+      loadDevices(); // refresh device list in real-time
+    });
+
+    connection
+      .start()
+      .then(() => console.log("Connected to SignalR hub"))
+      .catch((err) => console.error("SignalR Connection Error:", err));
+
+    return () => {
+      connection.stop();
+    };
+  }, []);
 
   // Auto-clear success & error messages after 3 seconds
   useEffect(() => {
@@ -77,9 +120,7 @@ function App() {
   };
 
   const handleAdd = async () => {
-    // Mark touched so validation message shows
     setTouched(true);
-
     const errMsg = validateName(newDevice);
     if (errMsg) {
       setAddError(errMsg);
@@ -90,13 +131,12 @@ function App() {
         deviceName: newDevice.trim(),
         description: newDescription.trim() || "No description",
       });
-      setSuccess("Device added successfully");
       setNewDevice("");
       setNewDescription("");
       setAddError("");
       setTouched(false);
-      setCurrentPage(1); // reset to first page
-      loadDevices();
+      setCurrentPage(1);
+      // Removed local toast → SignalR will show it
     } catch (err) {
       console.error(err);
       setAddError(err.response?.data?.message || err.message || "Failed to add device");
@@ -107,8 +147,7 @@ function App() {
     if (!window.confirm("Are you sure you want to delete this device?")) return;
     try {
       await deleteDevice(id);
-      setSuccess("Device deleted successfully");
-      loadDevices();
+      // Removed local toast → SignalR will show it
     } catch (err) {
       console.error(err);
       setAddError(err.response?.data?.message || "Failed to delete device");
@@ -132,9 +171,7 @@ function App() {
   };
 
   const handleUpdate = async () => {
-    // mark edit input as touched so error shows if invalid
     setEditTouched(true);
-
     const errMsg = validateName(editName, editId);
     if (errMsg) {
       setEditError(errMsg);
@@ -145,16 +182,15 @@ function App() {
         deviceName: editName.trim(),
         description: editDescription.trim() || "No description",
       });
-      setSuccess("Device updated successfully");
       handleCancelEdit();
-      loadDevices();
+      // Removed local toast → SignalR will show it
     } catch (err) {
       console.error(err);
       setEditError(err.response?.data?.message || err.message || "Failed to update device");
     }
   };
 
-  // Filtered and paginated devices
+  // Filter + Pagination
   const filteredDevices = devices.filter((d) =>
     d.deviceName.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -164,13 +200,18 @@ function App() {
     currentPage * pageSize
   );
 
-  const handlePrevPage = () => setCurrentPage((p) => Math.max(p - 1, 1));
-  const handleNextPage = () => setCurrentPage((p) => Math.min(p + 1, totalPages));
-
   return (
     <div className="container">
       <h1>Device Management System</h1>
-      {success && <p className="success">{success}</p>}
+
+      {/* Toast Notifications */}
+      <div className="toast-container">
+        {toasts.map((t) => (
+          <div key={t.id} className={`toast ${t.type}`}>
+            {t.message}
+          </div>
+        ))}
+      </div>
 
       {/* Add Form */}
       <div className="form">
@@ -182,7 +223,6 @@ function App() {
             value={newDevice}
             onChange={(e) => {
               setNewDevice(e.target.value);
-              // update addError live while typing
               setAddError(validateName(e.target.value));
             }}
             onBlur={() => setTouched(true)}
@@ -202,7 +242,6 @@ function App() {
             disabled={editId !== null}
           />
         </div>
-        {/* Note: removed `!newDevice.trim()` from disabled so clicking Add triggers validation */}
         <button
           type="button"
           className="add-btn"
@@ -260,7 +299,11 @@ function App() {
                   >
                     Save
                   </button>
-                  <button type="button" className="cancel-btn" onClick={handleCancelEdit}>
+                  <button
+                    type="button"
+                    className="cancel-btn"
+                    onClick={handleCancelEdit}
+                  >
                     Cancel
                   </button>
                 </div>
@@ -274,7 +317,10 @@ function App() {
                     <button className="edit-btn" onClick={() => handleEdit(d)}>
                       Edit
                     </button>
-                    <button className="delete-btn" onClick={() => handleDelete(d.id)}>
+                    <button
+                      className="delete-btn"
+                      onClick={() => handleDelete(d.id)}
+                    >
                       Delete
                     </button>
                   </div>
@@ -285,16 +331,22 @@ function App() {
         )}
       </ul>
 
-      {/* Pagination Controls */}
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className="pagination">
-          <button onClick={handlePrevPage} disabled={currentPage === 1}>
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+            disabled={currentPage === 1}
+          >
             Prev
           </button>
           <span>
             Page {currentPage} of {totalPages}
           </span>
-          <button onClick={handleNextPage} disabled={currentPage === totalPages}>
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+            disabled={currentPage === totalPages}
+          >
             Next
           </button>
         </div>
