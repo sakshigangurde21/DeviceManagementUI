@@ -25,6 +25,8 @@ function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5; // devices per page
 
+  const [connectionStatus, setConnectionStatus] = useState("disconnected"); 
+
   const MAX_DEVICE_NAME_LENGTH = 100;
 
   // Load devices on mount
@@ -54,39 +56,65 @@ function App() {
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
   };
 
-  // Setup SignalR connection
-  useEffect(() => {
-    const connection = new signalR.HubConnectionBuilder()
-      .withUrl("https://localhost:7003/deviceHub") // port
-      .withAutomaticReconnect()
-      .build();
+// setup signalR connection
+useEffect(() => {
+  const connection = new signalR.HubConnectionBuilder()
+    .withUrl("https://localhost:7003/deviceHub")
+    .withAutomaticReconnect() // add retries
+    .build();
 
-    connection.on("ReceiveNotification", (message) => {
-      console.log("SignalR message:", message);
+  connection.on("ReceiveNotification", async (message) => {
+    console.log("SignalR message:", message);
 
-      // Detect toast type based on message text
-      if (message.toLowerCase().includes("added")) {
-        showToast("added", message);
-      } else if (message.toLowerCase().includes("updated")) {
-        showToast("updated", message);
-      } else if (message.toLowerCase().includes("deleted")) {
-        showToast("deleted", message);
-      } else {
-        showToast("added", message); // fallback
-      }
+    if (message.toLowerCase().includes("added")) {
+      showToast("added", message);
+    } else if (message.toLowerCase().includes("updated")) {
+      showToast("updated", message);
+    } else if (message.toLowerCase().includes("deleted")) {
+      showToast("deleted", message);
+    } else {
+      showToast("info", message);
+    }
 
-      loadDevices(); // refresh device list in real-time
+    try {
+      await loadDevices();
+    } catch (err) {
+      showToast("error", "Failed to refresh devices");
+    }
+  });
+
+  // Lifecycle events
+  connection.onreconnecting(() => {
+    setConnectionStatus("reconnecting");
+    showToast("info", "Reconnecting to server...");
+  });
+
+  connection.onreconnected(() => {
+    setConnectionStatus("connected");
+    showToast("success", "Reconnected to server");
+  });
+
+  connection.onclose(() => {
+    setConnectionStatus("disconnected");
+    showToast("error", "Disconnected from server");
+  });
+
+  connection
+    .start()
+    .then(() => {
+      console.log("Connected to SignalR hub");
+      setConnectionStatus("connected");
+    })
+    .catch((err) => {
+      console.error("SignalR Connection Error:", err);
+      setConnectionStatus("disconnected");
     });
 
-    connection
-      .start()
-      .then(() => console.log("Connected to SignalR hub"))
-      .catch((err) => console.error("SignalR Connection Error:", err));
+  return () => {
+    connection.stop();
+  };
+}, []);
 
-    return () => {
-      connection.stop();
-    };
-  }, []);
 
   // Auto-clear success & error messages after 3 seconds
   useEffect(() => {
@@ -212,6 +240,16 @@ function App() {
           </div>
         ))}
       </div>
+
+      <div className="status-indicator">
+      <span
+    className={`status-dot ${connectionStatus}`}
+    title={`SignalR: ${connectionStatus}`}
+  ></span>
+  {connectionStatus === "connected" && "Connected"}
+  {connectionStatus === "reconnecting" && " Reconnecting..."}
+  {connectionStatus === "disconnected" && " Disconnected"}
+</div>
 
       {/* Add Form */}
       <div className="form">
